@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Academic Routine</title>
+
+<style>
+    body {
+        font-family: "Poppins", Arial;
+        background: #f5f6fa;
+        margin: 0;
+        padding: 0;
+    }
+
+    h1 {
+        text-align: center;
+        margin: 20px 0;
+    }
+
+    .sheet-title {
+        font-size: 22px;
+        margin-top: 30px;
+        font-weight: bold;
+        text-align: center;
+        color: #333;
+    }
+
+    .container {
+        max-width: 900px;
+        margin: auto;
+        background: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        margin-bottom: 40px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+
+    th {
+        background: #0066ff;
+        color: white;
+        padding: 10px;
+        text-align: center;
+    }
+
+    td {
+        padding: 8px;
+        text-align: center;
+        border-bottom: 1px solid #ddd;
+    }
+</style>
+</head>
+
+<body>
+
+<h1>📚 Academic Schedule</h1>
+<div id="content"></div>
+
+<script>
+const sheetID = "14xmRqJfjcdRIuoqHfrjO0kZQw7RkSFWVpeiLsgKBCi0";
+
+// STEP 1: Get list of all sheet names
+fetch(`https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq`)
+  .then(res => res.text())
+  .then(data => {
+    const sheetsList = JSON.parse(data.substr(47).slice(0, -2)).table.cols[0].label;
+    loadAllSheets();
+  });
+
+function loadAllSheets() {
+  const sheetMetaURL = `https://sheets.googleapis.com/v4/spreadsheets/${sheetID}?includeGridData=false&key=AIzaSyD`;
+  
+  // shortcut method using Gviz to detect sheets
+  fetch(`https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?`)
+    .then(r => r.text())
+    .then(text => {
+      const matches = [...text.matchAll(/gid=(\d+)/g)];
+      const sheetGIDs = [...new Set(matches.map(m => m[1]))];
+      loadSheetsByGID(sheetGIDs);
+    });
+}
+
+// STEP 2: Load each sheet separately using GID
+function loadSheetsByGID(gidList) {
+  gidList.forEach(gid => {
+    const apiURL = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?gid=${gid}`;
+    
+    fetch(apiURL)
+      .then(res => res.text())
+      .then(data => {
+        const json = JSON.parse(data.substr(47).slice(0, -2));
+
+        const title = json.table ? json.table.cols[0].label : "Sheet";
+        const contentDiv = document.getElementById("content");
+
+        // Add sheet title
+        const titleEl = document.createElement("div");
+        titleEl.className = "sheet-title";
+        titleEl.innerText = title;
+        contentDiv.appendChild(titleEl);
+
+        // Create container
+        const container = document.createElement("div");
+        container.className = "container";
+        const table = document.createElement("table");
+
+        // Header
+        let headerRow = document.createElement("tr");
+        json.table.cols.forEach(col => {
+          if (col.label) {
+            let th = document.createElement("th");
+            th.textContent = col.label;
+            headerRow.appendChild(th);
+          }
+        });
+        table.appendChild(headerRow);
+
+        // Rows
+        json.table.rows.forEach(row => {
+          let tr = document.createElement("tr");
